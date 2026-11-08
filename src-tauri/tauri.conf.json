@@ -15,27 +15,73 @@
       {
         "label": "main",
         "title": "Recall Clipboard",
-        "width": 900,
-        "height": 600,
-        "minWidth": 600,
-        "minHeight": 400,
-        "visible": false
+        "width": 960,
+        "height": 640,
+        "minWidth": 640,
+        "minHeight": 420,
+        "center": true,
+        "visible": false,
+        "transparent": true,
+        "create": false
       },
       {
         "label": "settings",
-        "title": "Recall Clipboard Settings",
-        "width": 520,
-        "height": 640,
-        "visible": false
+        "title": "Settings",
+        "width": 640,
+        "height": 720,
+        "minWidth": 480,
+        "minHeight": 400,
+        "center": true,
+        "visible": false,
+        "transparent": true,
+        "create": false
+      },
+      {
+        "label": "popup",
+        "title": "Recall Clipboard popup",
+        "width": 400,
+        "height": 460,
+        "decorations": false,
+        "resizable": false,
+        "skipTaskbar": true,
+        "alwaysOnTop": true,
+        "shadow": true,
+        "visible": false,
+        "transparent": true,
+        "create": false
+      },
+      {
+        "label": "welcome",
+        "title": "Welcome to Recall Clipboard",
+        "width": 440,
+        "height": 390,
+        "resizable": false,
+        "maximizable": false,
+        "minimizable": false,
+        "center": true,
+        "visible": false,
+        "transparent": true,
+        "create": false
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; connect-src ipc: http://ipc.localhost; img-src 'self' asset: http://asset.localhost data:; style-src 'self' 'unsafe-inline'",
+      "assetProtocol": {
+        "enable": true,
+        "scope": [
+          "$APPDATA/images/**",
+          "$APPDATA/icons/**"
+        ]
+      }
     }
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
+    "targets": [
+      "nsis"
+    ],
+    "shortDescription": "Clipboard history for Windows",
+    "copyright": "MIT License",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

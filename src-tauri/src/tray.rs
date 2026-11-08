@@ -1,38 +1,49 @@
-use std::sync::atomic::{AtomicBool, Ordering};
-
 use tauri::{
-    AppHandle,
+    AppHandle, Manager, Wry,
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
 };
 
-use crate::show_window;
+use crate::{show_window, update_settings};
 
-/// Recording is paused while this is true. Read by the clipboard watcher.
-pub static PAUSED: AtomicBool = AtomicBool::new(false);
+const TRAY_ID: &str = "main";
 
-pub fn create(app: &AppHandle) -> tauri::Result<()> {
+/// The Pause/Resume menu item, kept so its label can follow the setting.
+struct PauseItem(MenuItem<Wry>);
+
+pub fn create(app: &AppHandle, paused: bool) -> tauri::Result<()> {
     let open = MenuItem::with_id(app, "open", "Open", true, None::<&str>)?;
-    let pause = MenuItem::with_id(app, "pause", "Pause recording", true, None::<&str>)?;
+    let pause = MenuItem::with_id(app, "pause", pause_label(paused), true, None::<&str>)?;
     let settings = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
     let menu = Menu::with_items(
         app,
-        &[&open, &pause, &settings, &PredefinedMenuItem::separator(app)?, &quit],
+        &[
+            &open,
+            &pause,
+            &settings,
+            &PredefinedMenuItem::separator(app)?,
+            &quit,
+        ],
     )?;
+    app.manage(PauseItem(pause));
 
-    TrayIconBuilder::with_id("main")
-        .icon(app.default_window_icon().expect("bundle has an icon").clone())
-        .tooltip("Recall Clipboard")
+    TrayIconBuilder::with_id(TRAY_ID)
+        .icon(
+            app.default_window_icon()
+                .expect("bundle has an icon")
+                .clone(),
+        )
+        .tooltip(tooltip(paused))
         .menu(&menu)
         .show_menu_on_left_click(false)
-        .on_menu_event(move |app, event| match event.id.as_ref() {
+        .on_menu_event(|app, event| match event.id.as_ref() {
             "open" => show_window(app, "main"),
             "settings" => show_window(app, "settings"),
             "pause" => {
-                let paused = !PAUSED.fetch_xor(true, Ordering::Relaxed);
-                let label = if paused { "Resume recording" } else { "Pause recording" };
-                let _ = pause.set_text(label);
+                if let Err(e) = update_settings(app, |s| s.paused = !s.paused) {
+                    eprintln!("couldn't toggle pause: {e}");
+                }
             }
             "quit" => app.exit(0),
             _ => {}
@@ -49,4 +60,28 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
         })
         .build(app)?;
     Ok(())
+}
+
+/// Updates the menu label and tooltip after the pause setting changed.
+pub fn set_paused(app: &AppHandle, paused: bool) {
+    let _ = app.state::<PauseItem>().0.set_text(pause_label(paused));
+    if let Some(tray) = app.tray_by_id(TRAY_ID) {
+        let _ = tray.set_tooltip(Some(tooltip(paused)));
+    }
+}
+
+fn pause_label(paused: bool) -> &'static str {
+    if paused {
+        "Resume recording"
+    } else {
+        "Pause recording"
+    }
+}
+
+fn tooltip(paused: bool) -> &'static str {
+    if paused {
+        "Recall Clipboard (paused)"
+    } else {
+        "Recall Clipboard"
+    }
 }
