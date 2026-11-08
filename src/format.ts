@@ -33,6 +33,22 @@ export function groupOf(item: Item, now = Date.now()): Group {
 
 export const imageLabel = (item: Item) => `Image · ${item.width}×${item.height}`;
 
+export const filePaths = (item: Item) => item.content.split("\n").filter(Boolean);
+export const fileName = (path: string) => path.split(/[\\/]/).pop() || path;
+
+/** "report.pdf", or "3 files · report.pdf, notes.txt, …". */
+export function filesLabel(item: Item): string {
+  const names = filePaths(item).map(fileName);
+  return names.length === 1 ? names[0] : `${names.length} files · ${names.join(", ")}`;
+}
+
+/** The single-line label for any item. */
+export function rowLabel(item: Item): string {
+  if (item.kind === "image") return imageLabel(item);
+  if (item.kind === "files") return filesLabel(item);
+  return firstLine(item.content) || "(blank)";
+}
+
 /** "Ctrl+Shift+V" → ["Ctrl", "Shift", "V"], with "Super" shown as "Win". */
 export const hotkeyParts = (hotkey: string) =>
   hotkey.split("+").map((k) => (k === "Super" ? "Win" : k));

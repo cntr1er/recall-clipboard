@@ -9,6 +9,7 @@ import {
   Keyboard20Regular,
   Pause20Regular,
   Power20Regular,
+  Save20Regular,
   ShieldCheckmark20Regular,
 } from "@fluentui/react-icons";
 import { getVersion } from "@tauri-apps/api/app";
@@ -234,6 +235,30 @@ export default function Settings() {
       </Card>
 
       <h2>Recording</h2>
+      <Card
+        icon={<Save20Regular />}
+        title="What to save"
+        description="Copies of unchecked kinds are ignored and never read"
+      >
+        <span className="checks">
+          {(
+            [
+              ["recordText", "Text"],
+              ["recordImages", "Images"],
+              ["recordFiles", "Files"],
+            ] as const
+          ).map(([key, label]) => (
+            <label key={key} className="checkbox">
+              <input
+                type="checkbox"
+                checked={settings[key]}
+                onChange={(e) => update({ [key]: e.target.checked })}
+              />
+              {label}
+            </label>
+          ))}
+        </span>
+      </Card>
       <Card
         icon={<Pause20Regular />}
         title="Pause recording"

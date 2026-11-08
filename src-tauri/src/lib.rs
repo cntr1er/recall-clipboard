@@ -141,11 +141,19 @@ fn on_clipboard_change(app: &AppHandle) {
     if privacy::is_excluded_app(exe, &settings.excluded_apps) {
         return;
     }
-    let Some(clip) = clipboard::read() else {
+    let wanted = clipboard::Wanted {
+        text: settings.record_text,
+        images: settings.record_images,
+        files: settings.record_files,
+    };
+    let Some(clip) = clipboard::read(wanted) else {
         return;
     };
 
     let img = match clip {
+        Clip::Files(paths) => {
+            return record(app, "files", &paths.join("\n"), None, source.as_ref());
+        }
         Clip::Text(text) => return record(app, "text", &text, None, source.as_ref()),
         Clip::Png(bytes) => images::decode_png(&bytes),
         Clip::Dib(bytes) => images::decode_dib(&bytes),
@@ -211,7 +219,11 @@ pub fn run() {
             };
             std::fs::create_dir_all(&paths.images)?;
             std::fs::create_dir_all(&paths.icons)?;
-            let settings = Settings::load(&paths.settings).sanitized();
+            let mut settings = Settings::load(&paths.settings).sanitized();
+            // A (re)install may have left the user's "What to save" choices.
+            if settings.take_install_options(&dir.join("install-options.json")) {
+                settings.save(&paths.settings)?;
+            }
 
             app.manage(Mutex::new(Storage::open(&dir.join("history.db"))?));
             app.manage(Mutex::new(settings.clone()));

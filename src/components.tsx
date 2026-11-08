@@ -1,7 +1,12 @@
 import { ReactNode, forwardRef, useEffect, useRef, useState } from "react";
-import { Pin16Filled, Window16Regular } from "@fluentui/react-icons";
+import {
+  Document16Regular,
+  DocumentMultiple16Regular,
+  Pin16Filled,
+  Window16Regular,
+} from "@fluentui/react-icons";
 import { Item, iconSrc, thumbSrc } from "./api";
-import { firstLine, imageLabel, relativeTime } from "./format";
+import { filePaths, relativeTime, rowLabel } from "./format";
 
 /** The source app's icon, or a generic window icon if we don't have one. */
 export function AppIcon({ exe, name, size = 16 }: { exe: string | null; name?: string | null; size?: number }) {
@@ -39,6 +44,8 @@ export const ItemRow = forwardRef<HTMLLIElement, RowProps>(function ItemRow(
   ref,
 ) {
   const isImage = item.kind === "image";
+  const isFiles = item.kind === "files";
+  const many = isFiles && filePaths(item).length > 1;
   return (
     <li
       ref={ref}
@@ -51,9 +58,13 @@ export const ItemRow = forwardRef<HTMLLIElement, RowProps>(function ItemRow(
     >
       {item.pinned && <Pin16Filled className="row-pin" aria-label="Pinned" />}
       {isImage && <img className="row-thumb" src={thumbSrc(item.content)} alt="" />}
-      <span className={`row-text${isImage ? " muted" : ""}`}>
-        {isImage ? imageLabel(item) : firstLine(item.content) || "(blank)"}
-      </span>
+      {isFiles &&
+        (many ? (
+          <DocumentMultiple16Regular className="row-kind" aria-label="Files" />
+        ) : (
+          <Document16Regular className="row-kind" aria-label="File" />
+        ))}
+      <span className={`row-text${isImage ? " muted" : ""}`}>{rowLabel(item)}</span>
       <span className="row-meta">
         <AppIcon exe={item.sourceApp} name={item.sourceName} />
         <time>{relativeTime(item.copiedAt)}</time>
