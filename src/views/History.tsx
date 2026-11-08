@@ -2,6 +2,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import {
   Copy20Regular,
   Delete20Regular,
+  Document20Regular,
   Pin20Filled,
   Pin20Regular,
   Search16Regular,
@@ -20,14 +21,15 @@ import {
   setPinned,
 } from "../api";
 import { AppIcon, ItemRow } from "../components";
-import { firstLine, groupOf } from "../format";
+import { fileName, filePaths, firstLine, groupOf } from "../format";
 import { useItems, useMinuteTick } from "../hooks";
 
-type Kind = "all" | "text" | "image" | "pinned";
+type Kind = "all" | "text" | "image" | "files" | "pinned";
 const KINDS: [Kind, string][] = [
   ["all", "All"],
   ["text", "Text"],
   ["image", "Images"],
+  ["files", "Files"],
   ["pinned", "Pinned"],
 ];
 
@@ -43,7 +45,7 @@ export default function History() {
 
   const items = useItems({
     query,
-    kind: kind === "text" || kind === "image" ? kind : null,
+    kind: kind === "all" || kind === "pinned" ? null : kind,
     pinnedOnly: kind === "pinned",
     sourceApp: source || null,
     limit: 2000,
@@ -174,25 +176,45 @@ export default function History() {
 function Preview({ item }: { item: Item }) {
   const [full, setFull] = useState<Item | null>(null);
   const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setCopied(false);
-    if (item.kind === "text") getItem(item.id).then(setFull, console.error);
+    setError(null);
+    // Lists carry a truncated preview; fetch the whole text or file list.
+    if (item.kind !== "image") getItem(item.id).then(setFull, console.error);
   }, [item.id, item.kind]);
 
   const text = full?.id === item.id ? full.content : item.content;
+  const paths = item.kind === "files" ? filePaths({ ...item, content: text }) : [];
   const copy = () =>
-    copyItem(item.id).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    }, console.error);
+    copyItem(item.id).then(
+      () => {
+        setError(null);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      },
+      (e) => setError(String(e)),
+    );
 
-  const details = [
+  const size =
     item.kind === "image"
       ? `${item.width} × ${item.height}`
-      : `${text.length.toLocaleString()} characters`,
+      : item.kind === "files"
+        ? `${paths.length} ${paths.length === 1 ? "file" : "files"}`
+        : `${text.length.toLocaleString()} characters`;
+  const details = [
+    size,
     new Date(item.copiedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }),
   ];
+  const title =
+    item.kind === "image"
+      ? "Image"
+      : item.kind === "files"
+        ? paths.length === 1
+          ? fileName(paths[0])
+          : `${paths.length} files`
+        : firstLine(text).slice(0, 80) || "Text";
 
   return (
     <div className="preview">
@@ -200,9 +222,7 @@ function Preview({ item }: { item: Item }) {
         <div className="preview-title">
           <AppIcon exe={item.sourceApp} name={item.sourceName} size={20} />
           <div>
-            <div className="preview-name">
-              {item.kind === "image" ? "Image" : firstLine(text).slice(0, 80) || "Text"}
-            </div>
+            <div className="preview-name">{title}</div>
             <div className="caption">
               {item.sourceName ?? "Unknown app"} · {details.join(" · ")}
             </div>
@@ -224,11 +244,28 @@ function Preview({ item }: { item: Item }) {
           </button>
         </div>
       </div>
+      {error && (
+        <div className="infobar error preview-error" role="alert">
+          {error}
+        </div>
+      )}
       <div className="preview-body">
         {item.kind === "image" ? (
           <div className="checker">
             <img src={imageSrc(item.content)} alt={`Copied image, ${item.width} by ${item.height}`} />
           </div>
+        ) : item.kind === "files" ? (
+          <ul className="file-list">
+            {paths.map((p) => (
+              <li key={p}>
+                <Document20Regular className="file-icon" />
+                <div>
+                  <div>{fileName(p)}</div>
+                  <div className="caption">{p}</div>
+                </div>
+              </li>
+            ))}
+          </ul>
         ) : (
           <pre>{text}</pre>
         )}

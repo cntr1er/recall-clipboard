@@ -8,6 +8,7 @@ import { useItems } from "../hooks";
 export default function Popup() {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const items = useItems({ query, limit: 200 });
   const input = useRef<HTMLInputElement>(null);
   const list = useRef<HTMLUListElement>(null);
@@ -19,6 +20,7 @@ export default function Popup() {
       on("popup-opened", () => {
         setQuery("");
         setSelected(0);
+        setError(null);
         list.current?.scrollTo(0, 0);
         input.current?.focus();
       }),
@@ -35,7 +37,7 @@ export default function Popup() {
   }, [selected]);
 
   const current = items?.[selected];
-  const paste = (id: number) => pasteItem(id).catch(console.error);
+  const paste = (id: number) => pasteItem(id).catch((e) => setError(String(e)));
 
   function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
     const move = (d: number) => {
@@ -106,13 +108,19 @@ export default function Popup() {
         </ul>
       )}
 
-      <footer className="hints">
-        <span><Kbd>↑↓</Kbd> Move</span>
-        <span><Kbd>Enter</Kbd> Paste</span>
-        <span><Kbd>Ctrl+P</Kbd> Pin</span>
-        <span><Kbd>Del</Kbd> Delete</span>
-        <span><Kbd>Esc</Kbd> Close</span>
-      </footer>
+      {error ? (
+        <footer className="hints error" role="alert">
+          {error}
+        </footer>
+      ) : (
+        <footer className="hints">
+          <span><Kbd>↑↓</Kbd> Move</span>
+          <span><Kbd>Enter</Kbd> Paste</span>
+          <span><Kbd>Ctrl+P</Kbd> Pin</span>
+          <span><Kbd>Del</Kbd> Delete</span>
+          <span><Kbd>Esc</Kbd> Close</span>
+        </footer>
+      )}
     </div>
   );
 }

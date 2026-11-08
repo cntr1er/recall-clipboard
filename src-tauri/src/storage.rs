@@ -16,9 +16,9 @@ const DAY_MS: i64 = 86_400_000;
 #[serde(rename_all = "camelCase")]
 pub struct Item {
     pub id: i64,
-    /// `"text"` or `"image"`.
+    /// `"text"`, `"image"` or `"files"`.
     pub kind: String,
-    /// The text itself (truncated in lists), or the image's content hash.
+    /// The text (truncated in lists), the image's content hash, or file paths one per line.
     pub content: String,
     pub width: Option<u32>,
     pub height: Option<u32>,
@@ -41,9 +41,9 @@ pub struct App {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Filter {
-    /// Case-insensitive substring of text clips. Empty matches everything.
+    /// Case-insensitive substring of text clips and file paths. Empty matches everything.
     pub query: String,
-    /// `"text"` or `"image"`; `None` for both.
+    /// `"text"`, `"image"` or `"files"`; `None` for all.
     pub kind: Option<String>,
     pub pinned_only: bool,
     pub source_app: Option<String>,
@@ -85,7 +85,7 @@ impl Storage {
             "PRAGMA journal_mode = WAL;
              CREATE TABLE IF NOT EXISTS items (
                  id         INTEGER PRIMARY KEY,
-                 kind       TEXT    NOT NULL CHECK (kind IN ('text', 'image')),
+                 kind       TEXT    NOT NULL CHECK (kind IN ('text', 'image', 'files')),
                  content    TEXT    NOT NULL,
                  width      INTEGER,
                  height     INTEGER,
@@ -135,7 +135,7 @@ impl Storage {
         let pattern = format!("%{}%", escape_like(&f.query));
         let mut stmt = self.conn.prepare_cached(&format!(
             "{SELECT_ITEM}
-             WHERE (?2 = '' OR (i.kind = 'text' AND i.content LIKE ?3 ESCAPE '\\'))
+             WHERE (?2 = '' OR (i.kind IN ('text', 'files') AND i.content LIKE ?3 ESCAPE '\\'))
                AND (?4 IS NULL OR i.kind = ?4)
                AND (?5 = 0 OR i.pinned = 1)
                AND (?6 IS NULL OR i.source_app = ?6)
@@ -353,6 +353,23 @@ mod tests {
 
         assert_eq!(texts(&db.list(&query("hello")).unwrap()), ["Hello World"]);
         assert_eq!(texts(&db.list(&query("0%")).unwrap()), ["100% done"]);
+    }
+
+    #[test]
+    fn search_matches_file_paths_but_not_image_hashes() {
+        let db = db();
+        db.insert(
+            "files",
+            "C:\\Docs\\Report.pdf\nC:\\Docs\\notes.txt",
+            None,
+            None,
+            1,
+        )
+        .unwrap();
+        db.insert("image", "report", Some((1, 1)), None, 2).unwrap();
+        let hits = db.list(&query("report")).unwrap();
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].kind, "files");
     }
 
     #[test]

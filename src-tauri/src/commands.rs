@@ -67,13 +67,27 @@ fn put_on_clipboard(app: &AppHandle, id: i64) -> Res<()> {
         .get(id)
         .map_err(err)?
         .ok_or("That item no longer exists.")?;
-    let written = if item.kind == "image" {
-        let png = std::fs::read(images::file(&app.state::<Paths>().images, &item.content))
-            .map_err(err)?;
-        let img = images::decode_png(&png).ok_or("The image file is damaged.")?;
-        clipboard::write_image(&png, &images::encode_dib(&img))
-    } else {
-        clipboard::write_text(&item.content)
+    let written = match item.kind.as_str() {
+        "image" => {
+            let png = std::fs::read(images::file(&app.state::<Paths>().images, &item.content))
+                .map_err(err)?;
+            let img = images::decode_png(&png).ok_or("The image file is damaged.")?;
+            clipboard::write_image(&png, &images::encode_dib(&img))
+        }
+        "files" => {
+            // Files may have been moved or deleted since they were copied.
+            let paths: Vec<String> = item
+                .content
+                .lines()
+                .filter(|p| std::path::Path::new(p).exists())
+                .map(String::from)
+                .collect();
+            if paths.is_empty() {
+                return Err("These files no longer exist.".into());
+            }
+            clipboard::write_files(&paths)
+        }
+        _ => clipboard::write_text(&item.content),
     };
     if !written {
         return Err("Couldn't access the clipboard. Try again.".into());

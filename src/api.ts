@@ -5,8 +5,8 @@ import { appDataDir, join, sep } from "@tauri-apps/api/path";
 /** Mirrors `storage::Item` in Rust. */
 export interface Item {
   id: number;
-  kind: "text" | "image";
-  /** The text (truncated in lists; use `getItem` for all of it), or the image's content hash. */
+  kind: "text" | "image" | "files";
+  /** The text (truncated in lists; use `getItem` for all of it), the image's content hash, or file paths one per line. */
   content: string;
   width: number | null;
   height: number | null;
@@ -21,7 +21,7 @@ export interface Item {
 
 export interface Filter {
   query?: string;
-  kind?: "text" | "image" | null;
+  kind?: "text" | "image" | "files" | null;
   pinnedOnly?: boolean;
   sourceApp?: string | null;
   limit?: number;
@@ -40,6 +40,9 @@ export interface Settings {
   paused: boolean;
   excludedApps: string[];
   welcomed: boolean;
+  recordText: boolean;
+  recordImages: boolean;
+  recordFiles: boolean;
 }
 
 export const listItems = (filter: Filter) => invoke<Item[]>("list_items", { filter });

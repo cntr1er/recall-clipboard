@@ -11,12 +11,13 @@
 
 ## Features
 
-- **Records text and images** in the background, using Windows clipboard notifications rather than polling.
+- **Records text, images and files** in the background, using Windows clipboard notifications rather than polling. Files means files and folders copied in File Explorer, which paste back as files.
+- **You choose what to save.** The installer has a "What to save" page (Text, Images, Files), and Settings can change it at any time. Kinds you turn off are never read.
 - **No duplicates.** Copying something again moves it back to the top.
 - **Ctrl+Shift+V popup** that opens at your cursor. Type to filter, pick with ↑/↓, press Enter, and the item is pasted into the app you were using.
 - **Pins.** Pinned items stay at the top and are never deleted automatically.
 - **Source apps.** Every item shows the icon of the app it was copied from, and the history can be filtered by app.
-- **Full history window** with Text, Images and Pinned filters, date groups and a preview pane.
+- **Full history window** with Text, Images, Files and Pinned filters, date groups and a preview pane.
 - **Privacy controls:**
   - Copies that password managers mark as private are skipped and never read.
   - An excluded-apps list.
@@ -42,7 +43,7 @@
 
 ## Install
 
-Download `Recall Clipboard_x.y.z_x64-setup.exe` from the [latest release](../../releases/latest) and run it. Windows 10 works too, but without Mica.
+Download `Recall Clipboard_x.y.z_x64-setup.exe` from the [latest release](../../releases/latest) and run it. The installer asks what to save (text, images, files). Silent installs (`/S`) and updates keep your current choice. Windows 10 works too, but without Mica.
 
 The installer isn't code-signed, so SmartScreen may warn you the first time. Choose *More info → Run anyway*.
 
@@ -61,7 +62,7 @@ Recall Clipboard never records a copy when any of these is true:
 
 - The clipboard carries `ExcludeClipboardContentFromMonitorProcessing`, `CanIncludeInClipboardHistory = 0` or `Clipboard Viewer Ignore`. Password managers such as 1Password, Bitwarden and KeePassXC set these markers. The content of such copies is never read.
 - The copy came from an app on your excluded list.
-- Recording is paused.
+- Recording is paused, or that kind of copy (text, images, files) is turned off.
 
 To remove everything, uninstall the app and delete that folder.
 
@@ -103,7 +104,7 @@ cargo test
 │ images.rs      PNG/DIB decode, PNG + thumbnail on disk, content hash       │
 │ storage.rs     SQLite: items (unique on kind+content), apps                │
 │ hotkey.rs      global shortcut, popup at cursor, refocus + Ctrl+V          │
-│ settings.rs    JSON settings · tray.rs · theme.rs (Mica, accent)           │
+│ settings.rs    JSON settings (+ installer choices) · tray.rs · theme.rs    │
 │ commands.rs    Tauri commands the UI calls; lib.rs wires it all together   │
 └──────────────────────────────▲─────────────────────────────────────────────┘
                      invoke / events ("history-changed", "settings-changed")
@@ -113,12 +114,14 @@ cargo test
 └────────────────────────────────────────────────────────────────────────────┘
 ```
 
+The installer is Tauri's NSIS template (`src-tauri/windows/installer.nsi`) plus one inserted page. That page and the code that hands its choices to the app live in `installer-hooks.nsh`.
+
 How a copy flows through the app:
 
 1. Windows sends `WM_CLIPBOARDUPDATE` to a hidden window.
 2. Changes the app made itself are ignored, along with excluded apps and pauses.
 3. The clipboard is opened. If a privacy marker is present, the copy is dropped before its content is read.
-4. Text is upserted into SQLite. An image is decoded, hashed and saved as `images/<hash>.png` with a thumbnail, and its hash is upserted.
+4. Only the kinds you save are read: files first, then text, then images. Text and file lists are upserted into SQLite. An image is decoded, hashed and saved as `images/<hash>.png` with a thumbnail, and its hash is upserted.
 5. Retention cleanup runs, and the UI gets a `history-changed` event.
 
 Design decisions:
