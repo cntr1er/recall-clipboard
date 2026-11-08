@@ -2,12 +2,11 @@
 
 **Everything you copy, one keystroke away.** A fast, private clipboard history for Windows 11, built with Tauri and Rust.
 
-<!-- TODO: replace with a short GIF of copy → Ctrl+Shift+V → paste -->
-![Recall Clipboard popup](docs/popup.png)
+![Recall Clipboard: every copy, one keystroke away](docs/banner.jpg)
 
-| History window | Settings |
-| --- | --- |
-| ![History window](docs/history.png) | ![Settings window](docs/settings.png) |
+| Popup (Ctrl+Shift+V) | History window | Settings |
+| --- | --- | --- |
+| ![Popup](docs/popup.png) | ![History window](docs/history.png) | ![Settings window](docs/settings.png) |
 
 ## Features
 
