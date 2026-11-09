@@ -1,134 +1,103 @@
 # Recall Clipboard
 
-**Everything you copy, one keystroke away.** A fast, private clipboard history for Windows 11, built with Tauri and Rust.
+**Everything you copy, one keystroke away.** A fast, private clipboard history app for Windows 11.
 
 ![Recall Clipboard: every copy, one keystroke away](docs/banner.jpg)
 
-| Popup (Ctrl+Shift+V) | History window | Settings |
+| Quick paste (Ctrl+Shift+V) | History | Settings |
 | --- | --- | --- |
-| ![Popup](docs/popup.png) | ![History window](docs/history.png) | ![Settings window](docs/settings.png) |
+| ![Quick paste popup](docs/popup.png) | ![History window](docs/history.png) | ![Settings window](docs/settings.png) |
 
-## Features
+## What it does
 
-- **Records text, images and files** in the background, using Windows clipboard notifications rather than polling. Files means files and folders copied in File Explorer, which paste back as files.
-- **You choose what to save.** The installer has a "What to save" page (Text, Images, Files), and Settings can change it at any time. Kinds you turn off are never read.
-- **No duplicates.** Copying something again moves it back to the top.
-- **Ctrl+Shift+V popup** that opens at your cursor. Type to filter, pick with ↑/↓, press Enter, and the item is pasted into the app you were using.
-- **Pins.** Pinned items stay at the top and are never deleted automatically.
-- **Source apps.** Every item shows the icon of the app it was copied from, and the history can be filtered by app.
-- **Full history window** with Text, Images, Files and Pinned filters, date groups and a preview pane.
-- **Privacy controls:**
-  - Copies that password managers mark as private are skipped and never read.
-  - An excluded-apps list.
-  - Pause and resume from the tray.
-  - Auto-delete after N days, plus a maximum history size.
-  - Clear history (with a confirmation).
-- **Native Windows 11 look:**
-  - Mica backdrop and Segoe UI Variable.
-  - Fluent icons.
-  - Follows light and dark mode and your accent color.
-- **Tray app** with Open, Pause/Resume, Settings and Quit, and an option to start with Windows.
+- **Remembers what you copy:** text, images, and files from File Explorer.
+- **Pastes it back in one step.** Press **Ctrl+Shift+V**, type a few letters to find it, press **Enter**, and it's pasted where you were typing.
+- **You pick what it saves.** Turn text, images, or files on or off during install or in Settings at any time.
+- **No duplicates.** Copy the same thing twice and it just moves back to the top.
+- **Pins.** Pin the things you use often. Pinned items stay at the top and are never deleted.
+- **Shows where things came from.** Each item has the icon of the app you copied it from.
+- **Full history window** with search, filters (text, images, files, pinned), and a preview.
+- **Keeps private things private:**
+  - Passwords copied from password managers are never saved.
+  - Block any app you don't want recorded.
+  - Pause recording from the tray icon.
+  - Auto-delete old items, or clear everything at once.
+- **Looks at home on Windows 11.** It follows your light/dark mode and accent color.
+- **Lives in the tray** and can start with Windows.
 
-### Keyboard (popup)
+### Keyboard shortcuts (in the popup)
 
-| Key | Action |
+| Key | What it does |
 | --- | --- |
-| Type | Filter |
-| ↑ / ↓ | Move |
-| Enter | Paste into the previous app |
-| Ctrl+P | Pin / unpin |
+| Type | Search |
+| ↑ / ↓ | Move up and down |
+| Enter | Paste |
+| Ctrl+P | Pin or unpin |
 | Delete | Remove the item |
 | Esc | Close |
 
 ## Install
 
-Download `Recall Clipboard_x.y.z_x64-setup.exe` from the [latest release](../../releases/latest) and run it. The installer asks what to save (text, images, files). Silent installs (`/S`) and updates keep your current choice. Windows 10 works too, but without Mica.
+1. Download `Recall Clipboard_x.y.z_x64-setup.exe` from the [latest release](../../releases/latest).
+2. Run it and choose what you want to save.
 
-The installer isn't code-signed, so SmartScreen may warn you the first time. Choose *More info → Run anyway*.
+Windows may show a "Windows protected your PC" warning because the app isn't signed. Click **More info → Run anyway**.
 
-## Privacy
+Works on Windows 10 too, with a slightly plainer look.
 
-All data stays on your PC. Recall Clipboard makes no network requests. History is stored in `%APPDATA%\dev.recall.clipboard\`:
+## Your privacy
 
-| File | Contents |
-| --- | --- |
-| `history.db` | SQLite database of items and app names |
-| `images\` | Copied images (PNG) and their thumbnails |
-| `icons\` | Cached icons of source apps |
-| `settings.json` | Your settings |
+Everything stays on your PC. The app never connects to the internet.
 
-Recall Clipboard never records a copy when any of these is true:
+Your history is saved in `%APPDATA%\dev.recall.clipboard\`. To remove everything, uninstall the app and delete that folder.
 
-- The clipboard carries `ExcludeClipboardContentFromMonitorProcessing`, `CanIncludeInClipboardHistory = 0` or `Clipboard Viewer Ignore`. Password managers such as 1Password, Bitwarden and KeePassXC set these markers. The content of such copies is never read.
-- The copy came from an app on your excluded list.
-- Recording is paused, or that kind of copy (text, images, files) is turned off.
+It never saves a copy when:
 
-To remove everything, uninstall the app and delete that folder.
+- It comes from a password manager (like 1Password, Bitwarden, or KeePassXC). The app doesn't even look at it.
+- It comes from an app you blocked.
+- Recording is paused, or you turned that type off (text, images, or files).
 
-## Build from source
+## Build it yourself
 
-Prerequisites:
+You need:
 
-- Windows 10/11
-- [Rust](https://rustup.rs) (stable)
-- Visual Studio Build Tools with the "Desktop development with C++" workload
+- Windows 10 or 11
+- [Rust](https://rustup.rs)
+- Visual Studio Build Tools, with "Desktop development with C++"
 - Node.js 22+ and [pnpm](https://pnpm.io)
-- WebView2 Runtime (already present on Windows 11)
 
 ```powershell
-git clone https://github.com/<you>/recall-clipboard
+git clone https://github.com/cntr1er/recall-clipboard
 cd recall-clipboard
 pnpm install
-pnpm tauri dev      # run with hot reload
-pnpm tauri build    # installer → src-tauri/target/release/bundle/nsis/
+pnpm tauri dev      # run the app while you work on it
+pnpm tauri build    # make the installer (in src-tauri/target/release/bundle/nsis/)
 ```
 
-Checks (the same ones CI runs):
+Run the tests and checks:
 
 ```powershell
-pnpm build                                          # typecheck + bundle frontend
+pnpm build
 cd src-tauri
 cargo fmt --check
 cargo clippy --all-targets -- -D warnings
 cargo test
 ```
 
-## Architecture
+## How it's built
 
-```
-┌─────────────────────────── Rust (src-tauri/src) ───────────────────────────┐
-│ clipboard.rs   message-only window + AddClipboardFormatListener; read/write│
-│ privacy.rs     password-manager markers, excluded apps                     │
-│ source_app.rs  foreground process → exe, friendly name, icon               │
-│ images.rs      PNG/DIB decode, PNG + thumbnail on disk, content hash       │
-│ storage.rs     SQLite: items (unique on kind+content), apps                │
-│ hotkey.rs      global shortcut, popup at cursor, refocus + Ctrl+V          │
-│ settings.rs    JSON settings (+ installer choices) · tray.rs · theme.rs    │
-│ commands.rs    Tauri commands the UI calls; lib.rs wires it all together   │
-└──────────────────────────────▲─────────────────────────────────────────────┘
-                     invoke / events ("history-changed", "settings-changed")
-┌──────────────────────────────┴───── React + TypeScript (src) ──────────────┐
-│ views/Popup · views/History · views/Settings · views/Welcome               │
-│ One bundle serves every window; the window label picks the view.           │
-└────────────────────────────────────────────────────────────────────────────┘
-```
+- **Rust** (in `src-tauri/src`) does the work: it watches the clipboard, saves items to a small database, and pastes them back.
+- **React** (in `src`) draws the windows: the popup, history, settings, and welcome screen.
+- **Tauri** connects the two and makes the installer.
 
-The installer is Tauri's NSIS template (`src-tauri/windows/installer.nsi`) plus one inserted page. That page and the code that hands its choices to the app live in `installer-hooks.nsh`.
+When you copy something:
 
-How a copy flows through the app:
+1. Windows tells the app the clipboard changed. The app doesn't keep checking, so it uses no power while idle.
+2. The app skips it if it's paused, the app is blocked, or it's a password.
+3. It saves the item. Images are saved as files next to the database so the database stays small.
+4. Old items are cleaned up and the windows refresh.
 
-1. Windows sends `WM_CLIPBOARDUPDATE` to a hidden window.
-2. Changes the app made itself are ignored, along with excluded apps and pauses.
-3. The clipboard is opened. If a privacy marker is present, the copy is dropped before its content is read.
-4. Only the kinds you save are read: files first, then text, then images. Text and file lists are upserted into SQLite. An image is decoded, hashed and saved as `images/<hash>.png` with a thumbnail, and its hash is upserted.
-5. Retention cleanup runs, and the UI gets a `history-changed` event.
-
-Design decisions:
-
-- **Images live on disk, not in SQLite.** Screenshots are multi-megabyte. Keeping them out of the database keeps it small and fast, and the webview can load them straight from disk through Tauri's asset protocol. Each file is named by a hash of its pixels, so duplicates are free.
-- **Notifications, not polling.** `AddClipboardFormatListener` costs nothing while idle and never misses a change.
-- **Paste = clipboard + refocus + `SendInput`.** The popup remembers the foreground window when it opens. Enter writes the item, hides the popup, restores focus and sends Ctrl+V, releasing any modifiers that are still held.
-- **No duplicates by construction.** `UNIQUE(kind, content)` plus an upsert means "copy again" just updates `copied_at`.
+When you press Enter in the popup, the app puts the item on the clipboard, switches back to your previous window, and presses Ctrl+V for you.
 
 ## License
 
